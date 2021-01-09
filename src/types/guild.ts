@@ -161,6 +161,7 @@ export enum GuildFeatures {
 }
 
 /** https://discord.com/developers/docs/resources/guild#unavailable-guild-object */
+// deno-lint-ignore no-empty-interface
 export interface UnavailableGuildPayload extends Partial<GuildPayload> {}
 
 /** https://discord.com/developers/docs/resources/guild#guild-preview-object */

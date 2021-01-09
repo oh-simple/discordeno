@@ -292,11 +292,7 @@ export async function createInvite(
     throw new Error(Errors.MISSING_CREATE_INSTANT_INVITE);
   }
   const payload = {
-    ...options,
-    max_age: options.maxAge,
-    max_uses: options.maxUses,
-    target_user: options.targetUser,
-    target_user_type: options.targetUserType,
+    ...camelKeysToSnakeCase(options),
   };
 
   return RequestManager.post(endpoints.CHANNEL_INVITES(channelID), payload);
@@ -408,6 +404,7 @@ export async function editChannel(
 
   const payload = {
     ...camelKeysToSnakeCase(options),
+    // deno-lint-ignore camelcase
     permission_overwrites: options.permissionOverwrites?.map(
       (overwrite) => {
         return {

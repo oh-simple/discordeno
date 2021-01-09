@@ -7,16 +7,16 @@ import { CreateGuildRoleOptions } from "../types/mod.ts";
 import { Guild } from "./guild.ts";
 import { Member } from "./member.ts";
 
-const baseRole: any = {
+const baseRole: Partial<Role> = {
   get guild() {
-    return cache.guilds.find((g) => g.roles.has(this.id));
+    return cache.guilds.find((g) => g.roles.has(this.id!));
   },
   get hexColor() {
     return this.color!.toString(16);
   },
   get members() {
     return cache.members.filter((m) =>
-      m.guilds.some((g) => g.roles.includes(this.id))
+      m.guilds.some((g) => g.roles.includes(this.id!))
     );
   },
   get mention() {
@@ -68,18 +68,18 @@ const baseRole: any = {
 };
 
 export async function createRole(data: RolePayload) {
-  const { tags, ...rest } = data;
+  const { tags = {}, ...rest } = data;
 
   const restProps: Record<string, ReturnType<typeof createNewProp>> = {};
   for (const key of Object.keys(rest)) {
-    restProps[key] = createNewProp((rest as any)[key]);
+    restProps[key] = createNewProp(rest[key]);
   }
 
   const role = Object.create(baseRole, {
     ...restProps,
-    botID: createNewProp(tags?.bot_id),
-    isNitroBoostRole: createNewProp("premium_subscriber" in (tags ?? {})),
-    integrationID: createNewProp(tags?.integration_id),
+    botID: createNewProp(tags.bot_id),
+    isNitroBoostRole: createNewProp("premium_subscriber" in tags),
+    integrationID: createNewProp(tags.integration_id),
   });
 
   return role as Role;
@@ -123,7 +123,7 @@ export interface Role {
   // METHODS
 
   /** Delete the role */
-  delete(guildID?: string): Promise<unknown>;
+  delete(guildID?: string): ReturnType<typeof deleteRole>;
   /** Edits the role */
   edit(options: CreateGuildRoleOptions): Promise<Role>;
   /** Checks if this role is higher than another role. */

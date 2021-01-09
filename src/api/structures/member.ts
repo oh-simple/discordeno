@@ -2,6 +2,7 @@ import {
   CreateGuildBan,
   CreateMessageParams,
   GuildMemberPayload,
+  ValueOf,
 } from "../../types/mod.ts";
 import { cache } from "../../util/cache.ts";
 import { Collection } from "../../util/collection.ts";
@@ -95,12 +96,14 @@ export async function createMember(data: GuildMemberPayload, guildID: string) {
     rest.user || {};
 
   const restProps: Record<string, ReturnType<typeof createNewProp>> = {};
+
   for (const key of Object.keys(rest)) {
-    restProps[key] = createNewProp((rest as any)[key]);
+    // @ts-ignore idk
+    restProps[key] = createNewProp(rest[key]);
   }
 
   for (const key of Object.keys(user)) {
-    // @ts-ignore
+    // @ts-ignore idk
     restProps[key] = createNewProp(user[key]);
   }
 
@@ -182,15 +185,22 @@ export interface Member {
   /** Get the nickname */
   guildMember(guildID: string): GuildMember | undefined;
   /** Send a direct message to the user is possible */
-  sendDM(content: string | CreateMessageParams): Promise<any>;
+  sendDM(
+    content: string | CreateMessageParams,
+  ): ReturnType<typeof sendDirectMessage>;
   /** Kick the member from a guild */
-  kick(guildID: string): Promise<any>;
+  kick(guildID: string): ReturnType<typeof kick>;
   /** Edit the member in a guild */
-  edit(guildID: string, options: EditGuildMemberOptions): Promise<any>;
+  edit(
+    guildID: string,
+    options: EditGuildMemberOptions,
+  ): ReturnType<typeof editMember>;
   /** Ban a member in a guild */
-  ban(guildID: string, options: CreateGuildBan): Promise<any>;
+  ban(guildID: string, options: CreateGuildBan): ReturnType<typeof ban>;
   /** Add a role to the member */
-  addRole(guildID: string, roleID: string): Promise<any>;
+  addRole(guildID: string, roleID: string): ReturnType<typeof addRole>;
   /** Remove a role from the member */
-  removeRole(guildID: string, roleID: string): Promise<any>;
+  removeRole(guildID: string, roleID: string): ReturnType<typeof removeRole>;
+  // Index signature
+  [key: string]: ValueOf<Member>;
 }

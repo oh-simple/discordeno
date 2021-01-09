@@ -1,3 +1,4 @@
+// deno-lint-ignore-file require-await no-explicit-any prefer-const
 import { PresenceUpdateEventPayload } from "../../types/mod.ts";
 import { cache } from "../../util/cache.ts";
 import { Collection } from "../../util/collection.ts";

@@ -12,12 +12,15 @@ import {
   GuildPayload,
   GuildWidgetPayload,
   Intents,
+  MembershipScreeningFieldTypes,
+  MembershipScreeningPayload,
   PremiumTypes,
   RolePayload,
   TemplatePayload,
   UserFlags,
   UserPayload,
   VerificationLevel,
+  WelcomeScreenPayload,
 } from "../../types/mod.ts";
 import { Collection } from "../../util/collection.ts";
 import { endpoints } from "../../util/constants.ts";
@@ -69,12 +72,15 @@ import {
 export async function createServer(options: CreateGuildOptions) {
   const payload = {
     ...options,
+    // deno-lint-ignore camelcase
     verification_level: options.verificationLevel
       ? VerificationLevel[options.verificationLevel]
       : undefined,
+    // deno-lint-ignore camelcase
     default_message_notifications: options.defaultMessageNotifications
       ? DefaultMessageNotificationLevel[options.defaultMessageNotifications]
       : undefined,
+    // deno-lint-ignore camelcase
     explicit_content_filter: options.explicitContentFilter
       ? ExplicitContentFilterLevel[options.explicitContentFilter]
       : undefined,
@@ -518,8 +524,8 @@ export function fetchMembers(guild: Guild, options?: FetchMembersOptions) {
     options.limit = options.userIDs.length;
   }
 
-  return new Promise(async (resolve) => {
-    await requestAllMembers(guild, resolve, options);
+  return new Promise((resolve) => {
+    requestAllMembers(guild, resolve, options);
   }) as Promise<Collection<string, Member>>;
 }
 
@@ -712,12 +718,15 @@ export async function editGuild(guildID: string, options: EditGuildOptions) {
 
   const payload = {
     ...camelKeysToSnakeCase(options),
+    // deno-lint-ignore camelcase
     verification_level: options.verificationLevel
       ? VerificationLevel[options.verificationLevel]
       : undefined,
+    // deno-lint-ignore camelcase
     default_message_notifications: options.defaultMessageNotifications
       ? DefaultMessageNotificationLevel[options.defaultMessageNotifications]
       : undefined,
+    // deno-lint-ignore camelcase
     explicit_content_filter: options.explicitContentFilter
       ? ExplicitContentFilterLevel[options.explicitContentFilter]
       : undefined,
@@ -929,4 +938,133 @@ export async function editGuildTemplate(
     data,
   ) as TemplatePayload;
   return structures.createTemplate(template);
+}
+
+function createMembershipStruct(
+  { form_fields: formFields, ...props }: MembershipScreeningPayload,
+) {
+  return {
+    ...props,
+    formFields: formFields.map(({ field_type, ...rest }) => ({
+      ...rest,
+      fieldType: field_type,
+    })),
+  };
+}
+
+export type MembershipScreening = ReturnType<typeof createMembershipStruct>;
+
+/** Get the membership screening form of a guild. */
+export async function getGuildMembershipScreeningForm(guildID: string) {
+  const membershipScreeningPayload = await RequestManager.get(
+    endpoints.GUILD_MEMBER_VERIFICATION(guildID),
+  ) as MembershipScreeningPayload;
+
+  return createMembershipStruct(membershipScreeningPayload);
+}
+
+/** Edit the guild's Membership Screening form. Requires the `MANAGE_GUILD` permission. */
+export async function editGuildMembershipScreeningForm(
+  guildID: string,
+  options?: EditGuildMembershipScreeningForm,
+) {
+  const membershipScreeningFormPayload = await RequestManager.patch(
+    endpoints.GUILD_MEMBER_VERIFICATION(guildID),
+    {
+      ...options,
+      form_fields: JSON.stringify(
+        options?.formFields?.map(({ fieldType, ...props }) => ({
+          ...props,
+          field_type: fieldType,
+        })),
+      ),
+    },
+  ) as MembershipScreeningPayload;
+
+  return createMembershipStruct(
+    membershipScreeningFormPayload,
+  );
+}
+
+export interface EditGuildMembershipScreeningForm {
+  /** whether Membership Screening is enabled */
+  enabled?: boolean;
+  /** array of field objects */
+  formFields?: MembershipScreeningField[];
+  /** the steps in the screening form */
+  description?: string;
+}
+
+export interface MembershipScreeningField {
+  /** the type of field */
+  fieldType: MembershipScreeningFieldTypes;
+  /** the title of the field */
+  label: string;
+  /** the list of rules */
+  values?: string[];
+  /** whether the user has to fill out this field */
+  required: boolean;
+}
+
+function createWelcomeScreenStruct(
+  { welcome_channels: welcomeChannels, ...rest }: WelcomeScreenPayload,
+) {
+  return {
+    ...camelKeysToSnakeCase(rest),
+  };
+}
+
+export type WelcomeScreen = ReturnType<typeof createWelcomeScreenStruct>;
+
+/** Returns the Welcome Screen structure for a guild. */
+export async function getGuildWelcomeScreen(guildID: string) {
+  const guildWelcomeScreenPayload = await RequestManager.get(
+    endpoints.GUILD_WELCOME_SCREEN(guildID),
+  ) as WelcomeScreenPayload;
+  return createWelcomeScreenStruct(guildWelcomeScreenPayload);
+}
+
+/**
+ * Edit a guild's Welcome Screen.
+ * Requires the `MANAGE_GUILD` permission.
+ */
+export async function editGuildWelcomeScreen(
+  guildID: string,
+  options?: EditGuildWelcomeScreen,
+) {
+  const guildWelcomeScreenPayload = await RequestManager.patch(
+    endpoints.GUILD_WELCOME_SCREEN(guildID),
+    {
+      ...options,
+      welcome_channels: options?.welcomeChannels?.map((
+        { emojiID, emojiName, channelID, ...props },
+      ) => ({
+        ...props,
+        channel_id: channelID,
+        emoji_id: emojiID,
+        emoji_name: emojiName,
+      })),
+    },
+  ) as WelcomeScreenPayload;
+  return createWelcomeScreenStruct(guildWelcomeScreenPayload);
+}
+
+export interface EditGuildWelcomeScreen {
+  /** whether the welcome screen is enabled */
+  enabled?: boolean;
+  /** channels linked in the welcome screen and their display options */
+  welcomeChannels?: WelcomeScreenChannel[];
+  /** the server description to show in the welcome screen */
+  description?: string;
+}
+
+export interface WelcomeScreenChannel {
+  /** the server description shown in the welcome screen */
+  channelID: string;
+  /** the description shown for the channel */
+  description: string;
+  /** the emoji id, if the emoji is custom */
+  emojiID: string | null;
+  /** the emoji name if custom, the unicode character if standard, or `null` if no emoji is set */
+  emojiName: string | null;
 }
