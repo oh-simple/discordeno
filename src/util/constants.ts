@@ -104,6 +104,8 @@ export const endpoints = {
   GUILD_TEMPLATE: (code: string) =>
     `${baseEndpoints.BASE_URL}/guilds/templates/${code}`,
   GUILD_TEMPLATES: (id: string) => `${GUILDS_BASE(id)}/templates`,
+  GUILD_MEMBER_VERIFICATION: (guildID: string) =>
+    `${GUILDS_BASE(guildID)}/member-verification`,
   GUILD_WELCOME_SCREEN: (guildID: string) =>
     `${GUILDS_BASE(guildID)}/welcome-screen`,
 
